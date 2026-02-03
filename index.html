@@ -3,161 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Saber's Greeting</title>
+    <title>Saber's Dice Vault</title>
     <style>
         body {
             margin: 0;
             padding: 0;
-            background-color: #0a0a0a;
+            background-color: #0f0f0f;
             color: #e0e0e0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            font-family: 'Inter', sans-serif;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
 
-        .container {
-            text-align: center;
-            position: relative;
-            z-index: 2;
-        }
-
-        h1 {
-            font-size: 3rem;
-            font-weight: 300;
-            letter-spacing: 0.1rem;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(90deg, #fff, #888);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            opacity: 0;
-            animation: fadeIn 2s ease-out forwards;
-        }
-
-        .subtitle {
-            font-size: 1.2rem;
-            color: #888;
-            margin-bottom: 2rem;
-            opacity: 0;
-            animation: fadeIn 2s ease-out 1s forwards;
-        }
-
-        .vibe-status {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border: 1px solid #333;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #00ffcc;
-            opacity: 0;
-            animation: fadeIn 2s ease-out 2s forwards;
-        }
-
-        /* Background pulses */
-        .circle {
+        #ui-layer {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 10px;
-            height: 10px;
-            background-color: rgba(0, 255, 204, 0.2);
-            border-radius: 50%;
-            filter: blur(50px);
-            z-index: 0;
-            animation: pulse 8s infinite ease-in-out;
-        }
-
-        /* Spaceship */
-        #spaceship {
-            position: absolute;
-            width: 40px;
-            height: 20px;
-            z-index: 1;
-            pointer-events: none;
-            transition: transform 0.1s linear;
-        }
-
-        .ship-body {
-            fill: #00ffcc;
-            filter: drop-shadow(0 0 5px #00ffcc);
-        }
-
-        .ship-trail {
-            stroke: #00ffcc;
-            stroke-width: 2;
-            stroke-linecap: round;
-            opacity: 0.6;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes pulse {
-            0%, 100% { width: 300px; height: 300px; opacity: 0.2; }
-            50% { width: 500px; height: 500px; opacity: 0.5; }
-        }
-
-        /* Custom Cursor Trail-like effect background */
-        .glow {
-            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at center, rgba(30, 30, 30, 0) 0%, rgba(10, 10, 10, 1) 70%);
-            z-index: 0;
+            pointer-events: none;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .controls {
+            pointer-events: auto;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+            border: 1px solid #333;
+            max-width: fit-content;
+        }
+
+        button {
+            background: #222;
+            border: 1px solid #444;
+            color: #ccc;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #333;
+            border-color: #00ffcc;
+            color: #00ffcc;
+        }
+
+        button.roll-btn {
+            background: #00ffcc;
+            color: #000;
+            border: none;
+        }
+
+        button.roll-btn:hover {
+            background: #00cca3;
+            transform: scale(1.05);
+        }
+
+        .result-display {
+            pointer-events: none;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .total {
+            font-size: 5rem;
+            font-weight: 800;
+            color: #00ffcc;
+            text-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .total.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        #canvas-container {
+            flex-grow: 1;
+            width: 100%;
         }
     </style>
 </head>
 <body>
-    <div class="glow"></div>
-    <div class="circle"></div>
-    
-    <svg id="spaceship" viewBox="0 0 60 30">
-        <path class="ship-body" d="M10,15 L50,15 L40,5 L20,5 Z" />
-        <path class="ship-body" d="M10,15 L50,15 L40,25 L20,25 Z" />
-        <circle fill="#fff" cx="30" cy="15" r="3" />
-        <line class="ship-trail" x1="5" y1="15" x2="0" y2="15" />
-    </svg>
 
-    <div class="container">
-        <h1>Welcome back, Christopher.</h1>
-        <p class="subtitle">Trajectory over Destination.</p>
-        <div class="vibe-status">Saber Online // Vibe Coding Active</div>
+    <div id="ui-layer">
+        <div class="controls">
+            <button onclick="addDice('d4')">Add D4</button>
+            <button onclick="addDice('d6')">Add D6</button>
+            <button onclick="addDice('d8')">Add D8</button>
+            <button onclick="addDice('d10')">Add D10</button>
+            <button onclick="addDice('d12')">Add D12</button>
+            <button onclick="addDice('d20')">Add D20</button>
+            <button class="roll-btn" onclick="rollAll()">ROLL DICE</button>
+            <button onclick="clearDice()">Clear</button>
+        </div>
+
+        <div class="result-display">
+            <div id="result-total" class="total">0</div>
+        </div>
     </div>
 
+    <div id="canvas-container"></div>
+
+    <!-- Three.js and Cannon.js for 3D and Physics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
+
     <script>
-        const ship = document.getElementById('spaceship');
-        let x = Math.random() * window.innerWidth;
-        let y = Math.random() * window.innerHeight;
-        let angle = Math.random() * Math.PI * 2;
-        let speed = 2;
+        // --- Setup Scene ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        container.appendChild(renderer.domElement);
 
-        function update() {
-            // Wander logic
-            angle += (Math.random() - 0.5) * 0.2;
-            
-            x += Math.cos(angle) * speed;
-            y += Math.sin(angle) * speed;
+        camera.position.set(0, 15, 0);
+        camera.lookAt(0, 0, 0);
 
-            // Bounce off edges
-            if (x < 0 || x > window.innerWidth) angle = Math.PI - angle;
-            if (y < 0 || y > window.innerHeight) angle = -angle;
+        // --- Lights ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
 
-            // Apply transform
-            ship.style.left = `${x}px`;
-            ship.style.top = `${y}px`;
-            ship.style.transform = `rotate(${angle * (180 / Math.PI)}deg)`;
+        const spotLight = new THREE.SpotLight(0xffffff, 0.8);
+        spotLight.position.set(10, 20, 10);
+        spotLight.castShadow = true;
+        scene.add(spotLight);
 
-            requestAnimationFrame(update);
+        // --- Physics World ---
+        const world = new CANNON.World();
+        world.gravity.set(0, -9.82 * 2, 0); // Double gravity for snappier feel
+        world.broadphase = new CANNON.NaiveBroadphase();
+        world.solver.iterations = 10;
+
+        // --- Floor ---
+        const floorBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane() });
+        floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+        world.addBody(floorBody);
+
+        const floorMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(100, 100),
+            new THREE.MeshPhongMaterial({ color: 0x1a1a1a })
+        );
+        floorMesh.rotation.x = -Math.PI / 2;
+        floorMesh.receiveShadow = true;
+        scene.add(floorMesh);
+
+        // Boundaries (Invisible Walls)
+        function createWall(x, z, rotY) {
+            const body = new CANNON.Body({ mass: 0, shape: new CANNON.Plane() });
+            body.position.set(x, 0, z);
+            body.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), rotY);
+            world.addBody(body);
+        }
+        createWall(10, 0, -Math.PI/2);
+        createWall(-10, 0, Math.PI/2);
+        createWall(0, 10, Math.PI);
+        createWall(0, -10, 0);
+
+        // --- Dice Logic ---
+        const diceList = [];
+        const diceMaterials = {
+            d4: new THREE.MeshPhongMaterial({ color: 0xe74c3c }),
+            d6: new THREE.MeshPhongMaterial({ color: 0x3498db }),
+            d8: new THREE.MeshPhongMaterial({ color: 0x9b59b6 }),
+            d10: new THREE.MeshPhongMaterial({ color: 0xf1c40f }),
+            d12: new THREE.MeshPhongMaterial({ color: 0x2ecc71 }),
+            d20: new THREE.MeshPhongMaterial({ color: 0x00ffcc })
+        };
+
+        function createDiceGeometry(type) {
+            switch(type) {
+                case 'd4': return new THREE.TetrahedronGeometry(1);
+                case 'd6': return new THREE.BoxGeometry(1.5, 1.5, 1.5);
+                case 'd8': return new THREE.OctahedronGeometry(1.2);
+                case 'd10': return new THREE.IcosahedronGeometry(1.2, 0); // Simplified d10
+                case 'd12': return new THREE.DodecahedronGeometry(1.2);
+                case 'd20': return new THREE.IcosahedronGeometry(1.2);
+                default: return new THREE.BoxGeometry(1, 1, 1);
+            }
         }
 
-        update();
+        function createDiceBody(type) {
+            let shape;
+            switch(type) {
+                case 'd6': shape = new CANNON.Box(new CANNON.Vec3(0.75, 0.75, 0.75)); break;
+                default: shape = new CANNON.Sphere(1); // Approximate others as spheres for simple bounce
+            }
+            return new CANNON.Body({ mass: 1, shape: shape });
+        }
+
+        function addDice(type) {
+            const geometry = createDiceGeometry(type);
+            const mesh = new THREE.Mesh(geometry, diceMaterials[type]);
+            mesh.castShadow = true;
+            scene.add(mesh);
+
+            const body = createDiceBody(type);
+            body.position.set(Math.random() * 4 - 2, 5 + Math.random() * 5, Math.random() * 4 - 2);
+            world.addBody(body);
+
+            diceList.push({ mesh, body, type });
+        }
+
+        function rollAll() {
+            document.getElementById('result-total').classList.remove('show');
+            diceList.forEach(dice => {
+                dice.body.position.set(Math.random() * 4 - 2, 5 + Math.random() * 5, Math.random() * 4 - 2);
+                dice.body.velocity.set((Math.random()-0.5)*10, -5, (Math.random()-0.5)*10);
+                dice.body.angularVelocity.set(Math.random()*20, Math.random()*20, Math.random()*20);
+            });
+
+            // Simulate result after 2 seconds
+            setTimeout(() => {
+                let total = 0;
+                diceList.forEach(dice => {
+                    const sides = parseInt(dice.type.substring(1));
+                    total += Math.floor(Math.random() * sides) + 1;
+                });
+                const display = document.getElementById('result-total');
+                display.innerText = total;
+                display.classList.add('show');
+            }, 1500);
+        }
+
+        function clearDice() {
+            diceList.forEach(dice => {
+                scene.remove(dice.mesh);
+                world.remove(dice.body);
+            });
+            diceList.length = 0;
+            document.getElementById('result-total').innerText = '0';
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+            world.step(1/60);
+
+            diceList.forEach(dice => {
+                dice.mesh.position.copy(dice.body.position);
+                dice.mesh.quaternion.copy(dice.body.quaternion);
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
     </script>
 </body>
 </html>
