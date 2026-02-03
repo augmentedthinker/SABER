@@ -38,7 +38,6 @@
             width: 100%;
             background: #000;
             position: relative;
-            overflow: hidden;
         }
 
         .result-overlay {
@@ -158,31 +157,28 @@
         camera.position.set(0, 10, 0);
         camera.lookAt(0, 0, 0);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
         const light = new THREE.DirectionalLight(0xffffff, 0.5);
         light.position.set(5, 10, 2);
         light.castShadow = true;
         scene.add(light);
 
-        // Physics with high friction and damping to stop dice quickly
         const world = new CANNON.World();
-        world.gravity.set(0, -20, 0);
-        world.allowSleep = true; // Allow bodies to stop moving
+        world.gravity.set(0, -25, 0);
+        world.allowSleep = true;
 
         const diceMaterial = new CANNON.Material();
         const floorMaterial = new CANNON.Material();
         const contactMaterial = new CANNON.ContactMaterial(floorMaterial, diceMaterial, {
             friction: 0.3,
-            restitution: 0.2 // Low bounce
+            restitution: 0.1
         });
         world.addContactMaterial(contactMaterial);
 
-        // Floor (The actual bottom of the visual box)
         const floorBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: floorMaterial });
         floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
         world.addBody(floorBody);
 
-        // Tight Walls to keep dice centered
         function createWall(x, y, z, rotX, rotY) {
             const body = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: floorMaterial });
             body.position.set(x, y, z);
@@ -190,13 +186,35 @@
             if (rotY) body.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), rotY);
             world.addBody(body);
         }
-        createWall(3.2, 0, 0, 0, -Math.PI/2);  // Right
-        createWall(-3.2, 0, 0, 0, Math.PI/2);  // Left
-        createWall(0, 0, 4.5, 0, Math.PI);      // Back
-        createWall(0, 0, -4.5, 0, 0);           // Front
+        createWall(3.2, 0, 0, 0, -Math.PI/2);
+        createWall(-3.2, 0, 0, 0, Math.PI/2);
+        createWall(0, 0, 4.5, 0, Math.PI);
+        createWall(0, 0, -4.5, 0, 0);
 
         const diceList = [];
         const colors = [0x00ffcc, 0xff0066, 0x7000ff, 0xffcc00];
+
+        // --- Texture Generation for Numbers ---
+        function createDiceTexture(number, color) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = '#' + color.toString(16).padStart(6, '0');
+            ctx.fillRect(0, 0, 128, 128);
+            
+            // Text
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 70px Inter, Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(number, 64, 64);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            return new THREE.MeshPhongMaterial({ map: texture, flatShading: true });
+        }
 
         function createDiceGeometry(type) {
             switch(type) {
@@ -211,10 +229,23 @@
 
         function addDice(type) {
             if (diceList.length >= 8) return;
-            const mesh = new THREE.Mesh(createDiceGeometry(type), new THREE.MeshPhongMaterial({ 
-                color: colors[Math.floor(Math.random() * colors.length)],
-                flatShading: true 
-            }));
+            
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const geometry = createDiceGeometry(type);
+            let mesh;
+
+            if (type === 'd6') {
+                // For D6 we can easily map numbers to faces
+                const materials = [];
+                for (let i = 1; i <= 6; i++) {
+                    materials.push(createDiceTexture(i, color));
+                }
+                mesh = new THREE.Mesh(geometry, materials);
+            } else {
+                // For other polyhedrals, simplified mapping for now
+                mesh = new THREE.Mesh(geometry, createDiceTexture('?', color));
+            }
+            
             mesh.castShadow = true;
             scene.add(mesh);
 
@@ -224,7 +255,7 @@
 
             const body = new CANNON.Body({ mass: 1, shape: shape, material: diceMaterial });
             body.position.set(Math.random()-0.5, 4, Math.random()-0.5);
-            body.linearDamping = 0.5; // Help them slow down
+            body.linearDamping = 0.5;
             body.angularDamping = 0.5;
             world.addBody(body);
             diceList.push({ mesh, body, type });
@@ -236,10 +267,9 @@
             diceList.forEach(dice => {
                 dice.body.wakeUp();
                 dice.body.position.set(Math.random()-0.5, 5, Math.random()-0.5);
-                dice.body.velocity.set((Math.random()-0.5)*12, -8, (Math.random()-0.5)*12);
+                dice.body.velocity.set((Math.random()-0.5)*12, -10, (Math.random()-0.5)*12);
                 dice.body.angularVelocity.set(Math.random()*20, Math.random()*20, Math.random()*20);
             });
-            // Total shows after a short delay
             setTimeout(() => {
                 let total = 0;
                 diceList.forEach(dice => {
