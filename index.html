@@ -8,7 +8,7 @@
         body {
             margin: 0; padding: 0;
             background-color: #0a0a0a; color: #e0e0e0;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, sans-serif;
             display: flex; justify-content: center; align-items: center;
             height: 100vh; overflow: hidden;
             background: radial-gradient(circle at center, #1a1a1a 0%, #050505 100%);
@@ -81,20 +81,19 @@
         camera.position.set(0, 10, 0);
         camera.lookAt(0, 0, 0);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-        const light = new THREE.DirectionalLight(0xffffff, 0.6);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        const light = new THREE.DirectionalLight(0xffffff, 0.5);
         light.position.set(5, 10, 2);
         light.castShadow = true;
         scene.add(light);
 
         const world = new CANNON.World();
-        world.gravity.set(0, -25, 0);
+        world.gravity.set(0, -30, 0);
         world.allowSleep = true;
 
         const diceMaterial = new CANNON.Material();
         const floorMaterial = new CANNON.Material();
-        const contactMaterial = new CANNON.ContactMaterial(floorMaterial, diceMaterial, { friction: 0.3, restitution: 0.1 });
-        world.addContactMaterial(contactMaterial);
+        world.addContactMaterial(new CANNON.ContactMaterial(floorMaterial, diceMaterial, { friction: 0.1, restitution: 0.2 }));
 
         const floorBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: floorMaterial });
         floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
@@ -107,120 +106,125 @@
             if (rotY) body.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), rotY);
             world.addBody(body);
         }
-        createWall(3.2, 0, 0, 0, -Math.PI/2); createWall(-3.2, 0, 0, 0, Math.PI/2);
-        createWall(0, 0, 4.5, 0, Math.PI); createWall(0, 0, -4.5, 0, 0);
+        createWall(3,0,0,0,-Math.PI/2); createWall(-3,0,0,0,Math.PI/2);
+        createWall(0,0,4,0,Math.PI); createWall(0,0,-4,0,0);
 
         const diceList = [];
         const colors = [0x00ffcc, 0xff0066, 0x7000ff, 0xffcc00];
 
-        function createDiceTexture(number, color) {
+        // --- Improved Texture Generation ---
+        function createTextMaterial(number, color) {
             const canvas = document.createElement('canvas');
-            canvas.width = 128; canvas.height = 128;
+            canvas.width = 256; canvas.height = 256;
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#' + color.toString(16).padStart(6, '0');
-            ctx.fillRect(0, 0, 128, 128);
+            ctx.fillRect(0, 0, 256, 256);
             ctx.fillStyle = 'white';
-            ctx.font = 'bold 80px Inter, Arial';
+            ctx.font = 'bold 160px Arial';
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(number, 64, 64);
+            ctx.fillText(number, 128, 128);
             const texture = new THREE.CanvasTexture(canvas);
-            return new THREE.MeshPhongMaterial({ map: texture, flatShading: true });
+            return new THREE.MeshPhongMaterial({ map: texture });
         }
 
-        function getDiceParams(type) {
+        // --- Manual Geometry Mapping ---
+        function getDiceGeometry(type, color) {
+            let geometry;
+            let sides;
             switch(type) {
-                case 'd4': return { geom: new THREE.TetrahedronGeometry(1.1), sides: 4 };
-                case 'd6': return { geom: new THREE.BoxGeometry(1.2, 1.2, 1.2), sides: 6 };
-                case 'd8': return { geom: new THREE.OctahedronGeometry(1.1), sides: 8 };
-                case 'd10': return { geom: new THREE.IcosahedronGeometry(1.1, 0), sides: 10 }; 
-                case 'd12': return { geom: new THREE.DodecahedronGeometry(1.1), sides: 12 };
-                case 'd20': return { geom: new THREE.IcosahedronGeometry(1.2), sides: 20 };
+                case 'd4': geometry = new THREE.TetrahedronGeometry(1.2); sides = 4; break;
+                case 'd6': geometry = new THREE.BoxGeometry(1.2, 1.2, 1.2); sides = 6; break;
+                case 'd8': geometry = new THREE.OctahedronGeometry(1.2); sides = 8; break;
+                case 'd10': geometry = new THREE.IcosahedronGeometry(1.2, 0); sides = 10; break;
+                case 'd12': geometry = new THREE.DodecahedronGeometry(1.2); sides = 12; break;
+                case 'd20': geometry = new THREE.IcosahedronGeometry(1.2); sides = 20; break;
             }
+
+            // Convert to non-indexed so every face is unique
+            geometry = geometry.toNonIndexed();
+            const materialArray = [];
+            const faceCount = geometry.attributes.position.count / 3;
+            
+            geometry.clearGroups();
+            for (let i = 0; i < faceCount; i++) {
+                const num = (i % sides) + 1;
+                materialArray.push(createTextMaterial(num, color));
+                geometry.addGroup(i * 3, 3, i);
+            }
+            
+            // Fix UV mapping for textures to show centered on triangles/quads
+            const uvs = geometry.attributes.uv.array;
+            for (let i = 0; i < uvs.length; i += 6) {
+                uvs[i] = 0.5; uvs[i+1] = 1;
+                uvs[i+2] = 0; uvs[i+3] = 0;
+                uvs[i+4] = 1; uvs[i+5] = 0;
+            }
+            geometry.attributes.uv.needsUpdate = true;
+
+            return { geometry, materialArray, sides };
         }
 
         function addDice(type) {
             if (diceList.length >= 8) return;
             const color = colors[Math.floor(Math.random() * colors.length)];
-            const params = getDiceParams(type);
-            const geometry = params.geom;
-            
-            // To ensure every face has a texture, we map a material to every face index
-            const materials = [];
-            const faceCount = geometry.attributes.position.count / 3;
-            for (let i = 0; i < faceCount; i++) {
-                // Simplified: give each face a number from 1 to 'sides'
-                materials.push(createDiceTexture((i % params.sides) + 1, color));
-            }
-            
-            // Re-map group indices so Three.js knows which triangle uses which material
-            geometry.clearGroups();
-            for (let i = 0; i < faceCount; i++) {
-                geometry.addGroup(i * 3, 3, i);
-            }
-
-            const mesh = new THREE.Mesh(geometry, materials);
+            const data = getDiceGeometry(type, color);
+            const mesh = new THREE.Mesh(data.geometry, data.materialArray);
             mesh.castShadow = true;
+            mesh.userData.sides = data.sides;
             scene.add(mesh);
 
-            let shape;
-            if (type === 'd6') shape = new CANNON.Box(new CANNON.Vec3(0.6, 0.6, 0.6));
-            else shape = new CANNON.Sphere(0.8);
-
+            const shape = (type === 'd6') ? new CANNON.Box(new CANNON.Vec3(0.6, 0.6, 0.6)) : new CANNON.Sphere(0.8);
             const body = new CANNON.Body({ mass: 1, shape: shape, material: diceMaterial });
-            body.position.set(Math.random()-0.5, 4, Math.random()-0.5);
-            body.linearDamping = 0.4; body.angularDamping = 0.4;
+            body.position.set(Math.random()-0.5, 5, Math.random()-0.5);
+            body.linearDamping = 0.2; body.angularDamping = 0.2;
             world.addBody(body);
-            diceList.push({ mesh, body, type, sides: params.sides });
+            diceList.push({ mesh, body });
         }
 
-        function getUpwardFace(mesh) {
-            const vector = new THREE.Vector3(0, 1, 0); // World Up
-            let maxDot = -1;
-            let bestFaceIndex = 0;
-
+        function getResult(dice) {
+            const mesh = dice.mesh;
+            const geometry = mesh.geometry;
             const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
-            const position = mesh.geometry.attributes.position;
+            const position = geometry.attributes.position;
+            
+            let maxDot = -1;
+            let topFaceIndex = 0;
 
-            // Check each face normal
             for (let i = 0; i < position.count; i += 3) {
                 const vA = new THREE.Vector3().fromBufferAttribute(position, i);
                 const vB = new THREE.Vector3().fromBufferAttribute(position, i+1);
                 const vC = new THREE.Vector3().fromBufferAttribute(position, i+2);
                 
-                const cb = new THREE.Vector3().subVectors(vC, vB);
-                const ab = new THREE.Vector3().subVectors(vA, vB);
-                const normal = cb.cross(ab).normalize().applyMatrix3(normalMatrix);
+                const normal = new THREE.Vector3().crossVectors(
+                    new THREE.Vector3().subVectors(vC, vB),
+                    new THREE.Vector3().subVectors(vA, vB)
+                ).normalize().applyMatrix3(normalMatrix);
 
-                const dot = normal.dot(vector);
+                const dot = normal.dot(new THREE.Vector3(0, 1, 0));
                 if (dot > maxDot) {
                     maxDot = dot;
-                    bestFaceIndex = i / 3;
+                    topFaceIndex = i / 3;
                 }
             }
-            // Return the number assigned to that face material
-            return (bestFaceIndex % mesh.userData.sides) + 1;
+            return (topFaceIndex % mesh.userData.sides) + 1;
         }
 
         function rollAll() {
             if (diceList.length === 0) return;
             document.getElementById('result-total').classList.remove('show');
-            diceList.forEach(dice => {
-                dice.mesh.userData.sides = dice.sides; // Store for face detection
-                dice.body.wakeUp();
-                dice.body.position.set(Math.random()-0.5, 5, Math.random()-0.5);
-                dice.body.velocity.set((Math.random()-0.5)*15, -12, (Math.random()-0.5)*15);
-                dice.body.angularVelocity.set(Math.random()*25, Math.random()*25, Math.random()*25);
+            diceList.forEach(d => {
+                d.body.wakeUp();
+                d.body.position.set(Math.random()*0.5, 6, Math.random()*0.5);
+                d.body.velocity.set((Math.random()-0.5)*15, -15, (Math.random()-0.5)*15);
+                d.body.angularVelocity.set(Math.random()*30, Math.random()*30, Math.random()*30);
             });
-
             setTimeout(() => {
                 let total = 0;
-                diceList.forEach(dice => {
-                    total += getUpwardFace(dice.mesh);
-                });
+                diceList.forEach(d => { total += getResult(d); });
                 const el = document.getElementById('result-total');
                 el.innerText = total;
                 el.classList.add('show');
-            }, 1500);
+            }, 2000);
         }
 
         function clearDice() {
