@@ -19,35 +19,28 @@
             background: radial-gradient(circle at center, #1a1a1a 0%, #050505 100%);
         }
 
-        /* The Widget Container */
         .dice-widget {
             width: 90vw;
-            max-width: 400px;
-            height: 600px;
+            max-width: 380px;
+            height: 550px;
             background: #151515;
-            border-radius: 24px;
+            border-radius: 28px;
             border: 1px solid #333;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 255, 204, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
             display: flex;
             flex-direction: column;
             overflow: hidden;
             position: relative;
         }
 
-        /* 3D Viewport */
         #canvas-container {
             flex: 1;
             width: 100%;
             background: #000;
-            cursor: grab;
             position: relative;
+            overflow: hidden;
         }
 
-        #canvas-container:active {
-            cursor: grabbing;
-        }
-
-        /* Display for Total */
         .result-overlay {
             position: absolute;
             top: 20px;
@@ -64,7 +57,7 @@
             text-shadow: 0 0 20px rgba(0, 255, 204, 0.6);
             opacity: 0;
             transform: scale(0.5);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .total-number.show {
@@ -72,87 +65,58 @@
             transform: scale(1);
         }
 
-        /* Controls Panel */
         .controls {
             background: #1a1a1a;
-            padding: 20px;
+            padding: 16px;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
+            gap: 8px;
             border-top: 1px solid #333;
+            z-index: 10;
         }
 
         .dice-btn {
             background: #252525;
             border: 1px solid #333;
             color: #aaa;
-            padding: 12px 5px;
+            padding: 10px 4px;
             border-radius: 12px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
         }
 
-        .dice-btn:hover {
-            border-color: #00ffcc;
-            color: #fff;
-            background: #2a2a2a;
-        }
-
-        .dice-btn:active {
-            transform: scale(0.95);
-        }
-
-        .dice-btn span {
-            font-size: 0.6rem;
-            opacity: 0.6;
-            text-transform: uppercase;
-        }
+        .dice-btn:active { transform: scale(0.95); }
 
         .roll-btn {
             grid-column: span 3;
             background: #00ffcc;
             color: #000;
             border: none;
-            padding: 15px;
+            padding: 14px;
             border-radius: 12px;
             font-weight: 900;
-            font-size: 1.1rem;
-            margin-top: 5px;
+            font-size: 1rem;
+            margin-top: 4px;
             cursor: pointer;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 0 #00cca3;
-            transition: all 0.1s;
-        }
-
-        .roll-btn:hover {
-            background: #05ffce;
-        }
-
-        .roll-btn:active {
-            transform: translateY(2px);
-            box-shadow: 0 2px 0 #00cca3;
         }
 
         .clear-btn {
             position: absolute;
             top: 10px;
             right: 10px;
-            background: rgba(0,0,0,0.5);
+            background: rgba(255,255,255,0.1);
             border: none;
-            color: #ff4d4d;
-            font-size: 0.7rem;
+            color: #888;
+            font-size: 0.6rem;
             padding: 5px 10px;
             border-radius: 20px;
             cursor: pointer;
             z-index: 6;
-            pointer-events: auto;
         }
     </style>
 </head>
@@ -168,12 +132,12 @@
         </div>
 
         <div class="controls">
-            <button class="dice-btn" onclick="addDice('d4')">D4 <span>Tetra</span></button>
-            <button class="dice-btn" onclick="addDice('d6')">D6 <span>Cube</span></button>
-            <button class="dice-btn" onclick="addDice('d8')">D8 <span>Octa</span></button>
-            <button class="dice-btn" onclick="addDice('d10')">D10 <span>Deca</span></button>
-            <button class="dice-btn" onclick="addDice('d12')">D12 <span>Dodeca</span></button>
-            <button class="dice-btn" onclick="addDice('d20')">D20 <span>Icosa</span></button>
+            <button class="dice-btn" onclick="addDice('d4')">D4</button>
+            <button class="dice-btn" onclick="addDice('d6')">D6</button>
+            <button class="dice-btn" onclick="addDice('d8')">D8</button>
+            <button class="dice-btn" onclick="addDice('d10')">D10</button>
+            <button class="dice-btn" onclick="addDice('d12')">D12</button>
+            <button class="dice-btn" onclick="addDice('d20')">D20</button>
             <button class="roll-btn" onclick="rollAll()">Roll Dice</button>
         </div>
     </div>
@@ -182,131 +146,117 @@
     <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
 
     <script>
-        // --- Core Setup ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.shadowMap.enabled = true;
         container.appendChild(renderer.domElement);
 
-        camera.position.set(0, 12, 0);
+        camera.position.set(0, 10, 0);
         camera.lookAt(0, 0, 0);
 
-        // --- Lights ---
-        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-        const spotLight = new THREE.SpotLight(0xffffff, 0.8);
-        spotLight.position.set(5, 15, 5);
-        spotLight.castShadow = true;
-        spotLight.shadow.mapSize.width = 1024;
-        spotLight.shadow.mapSize.height = 1024;
-        scene.add(spotLight);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const light = new THREE.DirectionalLight(0xffffff, 0.5);
+        light.position.set(5, 10, 2);
+        light.castShadow = true;
+        scene.add(light);
 
-        // --- Physics ---
+        // Physics with high friction and damping to stop dice quickly
         const world = new CANNON.World();
-        world.gravity.set(0, -25, 0); 
-        
-        // Floor
-        const floorBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane() });
+        world.gravity.set(0, -20, 0);
+        world.allowSleep = true; // Allow bodies to stop moving
+
+        const diceMaterial = new CANNON.Material();
+        const floorMaterial = new CANNON.Material();
+        const contactMaterial = new CANNON.ContactMaterial(floorMaterial, diceMaterial, {
+            friction: 0.3,
+            restitution: 0.2 // Low bounce
+        });
+        world.addContactMaterial(contactMaterial);
+
+        // Floor (The actual bottom of the visual box)
+        const floorBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: floorMaterial });
         floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
         world.addBody(floorBody);
 
-        // Invisible Box Walls (Keep dice in view)
+        // Tight Walls to keep dice centered
         function createWall(x, y, z, rotX, rotY) {
-            const body = new CANNON.Body({ mass: 0, shape: new CANNON.Plane() });
+            const body = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: floorMaterial });
             body.position.set(x, y, z);
             if (rotX) body.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), rotX);
             if (rotY) body.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), rotY);
             world.addBody(body);
         }
-        createWall(4, 0, 0, 0, -Math.PI/2);  // Right
-        createWall(-4, 0, 0, 0, Math.PI/2);  // Left
-        createWall(0, 0, 6, 0, Math.PI);      // Back
-        createWall(0, 0, -6, 0, 0);           // Front
-        createWall(0, 10, 0, Math.PI/2, 0);   // Ceiling
+        createWall(3.2, 0, 0, 0, -Math.PI/2);  // Right
+        createWall(-3.2, 0, 0, 0, Math.PI/2);  // Left
+        createWall(0, 0, 4.5, 0, Math.PI);      // Back
+        createWall(0, 0, -4.5, 0, 0);           // Front
 
-        // --- Dice Factory ---
         const diceList = [];
-        const colors = [0x00ffcc, 0xff0066, 0x7000ff, 0xffcc00, 0x0066ff];
+        const colors = [0x00ffcc, 0xff0066, 0x7000ff, 0xffcc00];
 
         function createDiceGeometry(type) {
             switch(type) {
-                case 'd4': return new THREE.TetrahedronGeometry(1.2);
-                case 'd6': return new THREE.BoxGeometry(1.5, 1.5, 1.5);
-                case 'd8': return new THREE.OctahedronGeometry(1.3);
-                case 'd10': return new THREE.IcosahedronGeometry(1.2, 0); 
-                case 'd12': return new THREE.DodecahedronGeometry(1.3);
-                case 'd20': return new THREE.IcosahedronGeometry(1.4);
+                case 'd4': return new THREE.TetrahedronGeometry(1);
+                case 'd6': return new THREE.BoxGeometry(1.2, 1.2, 1.2);
+                case 'd8': return new THREE.OctahedronGeometry(1.1);
+                case 'd10': return new THREE.IcosahedronGeometry(1.1, 0); 
+                case 'd12': return new THREE.DodecahedronGeometry(1.1);
+                case 'd20': return new THREE.IcosahedronGeometry(1.2);
             }
         }
 
         function addDice(type) {
-            if (diceList.length > 10) return; // Performance cap
-            
-            const geometry = createDiceGeometry(type);
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            const material = new THREE.MeshPhongMaterial({ 
-                color: color, 
-                shininess: 100,
+            if (diceList.length >= 8) return;
+            const mesh = new THREE.Mesh(createDiceGeometry(type), new THREE.MeshPhongMaterial({ 
+                color: colors[Math.floor(Math.random() * colors.length)],
                 flatShading: true 
-            });
-            
-            const mesh = new THREE.Mesh(geometry, material);
+            }));
             mesh.castShadow = true;
             scene.add(mesh);
 
-            // Physics Body
             let shape;
-            if (type === 'd6') shape = new CANNON.Box(new CANNON.Vec3(0.75, 0.75, 0.75));
-            else shape = new CANNON.Sphere(0.9);
+            if (type === 'd6') shape = new CANNON.Box(new CANNON.Vec3(0.6, 0.6, 0.6));
+            else shape = new CANNON.Sphere(0.8);
 
-            const body = new CANNON.Body({ mass: 1, shape: shape });
-            body.position.set(Math.random()*2-1, 5, Math.random()*2-1);
-            body.angularVelocity.set(Math.random()*10, Math.random()*10, Math.random()*10);
-            body.allowSleep = true;
-            body.sleepSpeedLimit = 0.1;
+            const body = new CANNON.Body({ mass: 1, shape: shape, material: diceMaterial });
+            body.position.set(Math.random()-0.5, 4, Math.random()-0.5);
+            body.linearDamping = 0.5; // Help them slow down
+            body.angularDamping = 0.5;
             world.addBody(body);
-
             diceList.push({ mesh, body, type });
         }
 
         function rollAll() {
             if (diceList.length === 0) return;
-            
-            const totalEl = document.getElementById('result-total');
-            totalEl.classList.remove('show');
-
+            document.getElementById('result-total').classList.remove('show');
             diceList.forEach(dice => {
                 dice.body.wakeUp();
-                dice.body.position.y = 6 + Math.random() * 2;
-                dice.body.velocity.set((Math.random()-0.5)*15, -10, (Math.random()-0.5)*15);
-                dice.body.angularVelocity.set(Math.random()*25, Math.random()*25, Math.random()*25);
+                dice.body.position.set(Math.random()-0.5, 5, Math.random()-0.5);
+                dice.body.velocity.set((Math.random()-0.5)*12, -8, (Math.random()-0.5)*12);
+                dice.body.angularVelocity.set(Math.random()*20, Math.random()*20, Math.random()*20);
             });
-
+            // Total shows after a short delay
             setTimeout(() => {
                 let total = 0;
                 diceList.forEach(dice => {
-                    const sides = parseInt(dice.type.substring(1));
-                    total += Math.floor(Math.random() * sides) + 1;
+                    total += Math.floor(Math.random() * parseInt(dice.type.substring(1))) + 1;
                 });
-                totalEl.innerText = total;
-                totalEl.classList.add('show');
-            }, 1200);
+                const el = document.getElementById('result-total');
+                el.innerText = total;
+                el.classList.add('show');
+            }, 1000);
         }
 
         function clearDice() {
-            diceList.forEach(d => {
-                scene.remove(d.mesh);
-                world.remove(d.body);
-            });
+            diceList.forEach(d => { scene.remove(d.mesh); world.remove(d.body); });
             diceList.length = 0;
-            document.getElementById('result-total').innerText = '0';
             document.getElementById('result-total').classList.remove('show');
         }
 
-        // --- Loop ---
         function animate() {
             requestAnimationFrame(animate);
             world.step(1/60);
@@ -316,13 +266,6 @@
             });
             renderer.render(scene, camera);
         }
-
-        window.addEventListener('resize', () => {
-            camera.aspect = container.clientWidth / container.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(container.clientWidth, container.clientHeight);
-        });
-
         animate();
     </script>
 </body>
